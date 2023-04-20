@@ -4,8 +4,12 @@ from torch import nn
 from torch.nn import functional as F
 from torch.nn.parameter import Parameter
 from detectron2.layers import Conv2d, ConvTranspose2d, interpolate
-from detectron2.structures.boxes import matched_boxlist_iou
 from detectron2.utils.registry import Registry
+from detectron2.structures.boxes import Boxes
+from typing import Optional
+from torch import nn
+
+from detectron2.config import CfgNode
 # import cv2
 import fvcore.nn.weight_init as weight_init
 from .structures import DensePoseOutput
@@ -13,6 +17,43 @@ from .nonlocal_helper import NONLocalBlock2D
 from .transformer_helper import MultiHeadAttention
 import pickle
 ROI_DENSEPOSE_HEAD_REGISTRY = Registry("ROI_DENSEPOSE_HEAD")
+
+
+def matched_boxlist_iou(boxes1: Boxes, boxes2: Boxes) -> torch.Tensor:
+    """
+    Compute pairwise intersection over union (IOU) of two sets of matched
+    boxes. The box order must be (xmin, ymin, xmax, ymax).
+    Similar to boxlist_iou, but computes only diagonal elements of the matrix
+    Arguments:
+        boxes1: (Boxes) bounding boxes, sized [N,4].
+        boxes2: (Boxes) bounding boxes, sized [N,4].
+    Returns:
+        (tensor) iou, sized [N].
+    """
+    assert len(boxes1) == len(boxes2), (
+        "boxlists should have the same"
+        "number of entries, got {}, {}".format(len(boxes1), len(boxes2))
+    )
+    area1 = boxes1.area()  # [N]
+    area2 = boxes2.area()  # [N]
+    box1, box2 = boxes1.tensor, boxes2.tensor
+
+    # TODO remove following lines and to device if still doesn't work
+    device = box1.device
+    area1 = area1.cpu()
+    area2 = area2.cpu()
+    box1 = box1.cpu()
+    box2 = box2.cpu()
+
+    lt = torch.max(box1[:, :2], box2[:, :2])  # [N,2]
+    rb = torch.min(box1[:, 2:], box2[:, 2:])  # [N,2]
+    wh = (rb - lt).clamp(min=0)  # [N,2]
+    inter = wh[:, 0] * wh[:, 1]  # [N]
+    iou = inter / (area1 + area2 - inter)  # [N]
+
+    iou = iou.to(device)
+    del area1, area2, box1, box2, device
+    return iou
 
 
 def initialize_module_params(module):
@@ -654,6 +695,20 @@ def build_densepose_predictor(cfg, input_channels):
 def build_densepose_data_filter(cfg):
     dp_filter = DensePoseDataFilter(cfg, cfg.MODEL.ROI_DENSEPOSE_HEAD.FG_IOU_THRESHOLD)
     return dp_filter
+
+def build_densepose_embedder(cfg: CfgNode) -> Optional[nn.Module]:
+    """
+    Build embedder used to embed mesh vertices into an embedding space.
+    Embedder contains sub-embedders, one for each mesh ID.
+
+    Args:
+        cfg (cfgNode): configuration options
+    Return:
+        Embedding module
+    """
+    if cfg.MODEL.ROI_DENSEPOSE_HEAD.CSE.EMBEDDERS:
+        return Embedder(cfg)
+    return None
 
 
 def densepose_inference(densepose_outputs, detections):

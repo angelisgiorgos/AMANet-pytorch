@@ -8,6 +8,7 @@ MODEL:
   ROI_DENSEPOSE_HEAD:
     CONV_HEAD_DIM: 512
     KPT_ON: False
+    DECODER_ON: False
   ROI_KEYPOINT_HEAD:
     RCNN_HEAD_ON: False
 #  WEIGHTS: "/home/wangxuanhan/research/project/detectron2-master/coco_exps/DensePose_Res50_baseline/model_final.pth"
@@ -19,7 +20,7 @@ SOLVER:
   MAX_ITER: 180000
   STEPS: (120000, 160000)
   BASE_LR: 0.002
-  IMS_PER_BATCH: 12
+  IMS_PER_BATCH: 1
   WARMUP_FACTOR: 0.1
 #DATASETS:
 #  TRAIN: ("keypoints_coco_2014_train","keypoints_coco_2014_valminusminival")

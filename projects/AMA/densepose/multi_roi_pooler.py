@@ -8,7 +8,8 @@ from torch import nn
 from detectron2.layers import ShapeSpec
 
 from detectron2.modeling import ROI_HEADS_REGISTRY, StandardROIHeads
-from detectron2.modeling.poolers import ROIPooler, MultiROIPooler
+from detectron2.modeling.poolers import ROIPooler
+from .multi_roi_pooler import MultiROIPooler
 
 from detectron2.modeling.roi_heads.roi_heads import select_foreground_proposals, select_proposals_with_visible_keypoints
 from detectron2.modeling.roi_heads.keypoint_head import keypoint_rcnn_inference,keypoint_rcnn_loss

@@ -46,9 +46,11 @@ class DatasetMapper:
             # each entry to select proper transformation data. For now, since
             # all DensePose annotated data uses the same data semantics, we
             # omit this check.
+            print(densepose_transform_srcs[0], cfg.DATASETS.TRAIN)
+            print(densepose_transform_srcs)
             densepose_transform_data_fpath = PathManager.get_local_path(densepose_transform_srcs[0])
             self.densepose_transform_data = DensePoseTransformData.load(
-                densepose_transform_data_fpath
+                '/data/angelisg/datasets/DensePose_COCO/UV_data/UV_symmetry_transforms.mat'
             )
 
         self.is_train = is_train
